@@ -1,1 +1,2 @@
-# xrcon - cross(X) platform rcon(remote console) program.
+# XRCON - Cross-platform Remote Console.
+Synchronous client for RCON protocol with auto detect RCON protocol on Server implementation written on C++.
