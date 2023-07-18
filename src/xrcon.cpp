@@ -16,6 +16,7 @@
 #define SERVERDATA_EXECCOMMAND 2
 #define SERVERDATA_RESPONSE_VALUE 0
 
+// Convert Int To Little Endian Order
 void int2LE(int offset, unsigned char* packet, int value)
 {
 	for(unsigned short i=0;i<sizeof(value);++i)
@@ -25,6 +26,7 @@ void int2LE(int offset, unsigned char* packet, int value)
 	}
 }
 
+// Build Packet
 void buildPacket(unsigned char* packet, int& realPacketSz, int id, int type, std::string text)
 {
 	const int szOffset = 0, idOffset = 4, typeOffset = 8, textOffset = 12;
@@ -40,6 +42,7 @@ void buildPacket(unsigned char* packet, int& realPacketSz, int id, int type, std
 	packet[realPacketSz - 1] = 0x00;
 }
 
+// Function Which Gave You Index Of Console Color Sequence By The Number Of Minecraft Color
 int idxOf(char value)
 {
 	if(value <= '9') return value - '0';
@@ -47,6 +50,7 @@ int idxOf(char value)
 	else return value - 'k' + 16;
 }
 
+// List Of Console Color Sequences
 static const char* colors[] = {
 	"\e[0;30m", // BLACK
 	"\e[0;34m", // DARK_BLUE
@@ -72,6 +76,7 @@ static const char* colors[] = {
 	"\e[0m", // RESET
 };
 
+// Print Packet On Terminal
 void printPacket(int& realPacketSize,unsigned char* buff, bool& hasClr)
 {
 	for(int i=12;buff[i];++i)
@@ -98,9 +103,9 @@ int main()
 	
 	do
 	{
-		printf("Enter IP: "); std::cin >> IPAddr;
+		printf("Enter IP: "); std::cin >> IPAddr; // Enter Server IP Address
 
-		printf("Enter Port: "); std::cin >> port;
+		printf("Enter Port: "); std::cin >> port; // Enter Server Port
 
 		if((client_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) // Create Socket
 		{
@@ -117,20 +122,20 @@ int main()
 			printf(RED "Invalid Address / Address Not Supported \n" RST);
 		}
 	}
-	while(inet_pton(AF_INET, IPAddr.c_str(), &serv_addr.sin_addr) <= 0);
+	while(inet_pton(AF_INET, IPAddr.c_str(), &serv_addr.sin_addr) <= 0); // While Address Is Invalid Repeat
 
-	while(connect(client_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) // Connecting To Server
+	while(connect(client_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) // Connecting To Server Even While Server Is Unreachable
 	{
 		printf(RED "Connection Failed \n" RST);
 		printf(YELLOW "Reconnecting...\n" RST);
-		sleep(5);
+		sleep(5); // Wait 5 Seconds
 	}
 
 	printf(GREEN "Connected!\n" RST);
 
 	do
 	{
-		printf("Enter PASS: "); std::cin >> pass;
+		printf("Enter PASS: "); std::cin >> pass; // Enter Password
 
 		std::cin.ignore(256,'\n'); // Fix error when getline go throw without waiting any input
 
@@ -139,7 +144,7 @@ int main()
 		send(client_fd, packet, realPackSz, 0); // Send Auth Packet
 		recv(client_fd, buffer, BUFFER_SIZE,0); // Get Reponse From Server
 
-		if(buffer[8] != 2)
+		if(!buffer[8]) // If type in response packet is 0 is Source Protocol
 		{
 			isSource = 1;
 			recv(client_fd, buffer, BUFFER_SIZE,0); // Get Reponse From Server
@@ -147,7 +152,7 @@ int main()
 
 		if(buffer[4]) printf(RED "Authentication Denied!\n" RST);
 	}
-	while(buffer[4]);
+	while(buffer[4]); // While Password Incorrect(PacketID is 255) Repeat
 
 	printf(GREEN "Authentication Successful!\n" RST);
 
@@ -158,36 +163,35 @@ int main()
 	{
 		printf(">>> ");
 
-		std::string command;
-		std::getline(std::cin, command); // Read command
+		std::string command; std::getline(std::cin, command); // Read Command
 
-		if(command == "") continue;
+		if(command == "") continue; // If Command Is Empty Skip The Loop
 
-		buildPacket(packet, realPackSz, 0, SERVERDATA_EXECCOMMAND, command.c_str());
-		send(client_fd, packet, realPackSz, 0);
+		buildPacket(packet, realPackSz, 0, SERVERDATA_EXECCOMMAND, command.c_str()); // Build Packet
+		send(client_fd, packet, realPackSz, 0); // Send Command To The Server
 
-		if(command == "stop" || command == "quit") break;
+		if(command == "stop" || command == "quit") break; // Break The Loop If Command "stop" Or "quit"
 
-		if(!isSource)
+		if(!isSource) // If Minecraft Rcon Server
 		{
-			carry = recv(client_fd, buffer, BUFFER_SIZE, 0);
-			printPacket(realPackSz, buffer, hasColor);
+			carry = recv(client_fd, buffer, BUFFER_SIZE, 0); // Get Reponse From Server
+			printPacket(realPackSz, buffer, hasColor); // Print Packet On Terminal
 		}
-		else
+		else // If Source Rcon Server
 		{
-			carry = recv(client_fd, buffer, BUFFER_SIZE, 0);
-			send(client_fd, packet, realPackSz, 0);
+			carry = recv(client_fd, buffer, BUFFER_SIZE, 0); // Get Reponse From Server
+			send(client_fd, packet, realPackSz, 0); // Send Command To The Server
 			for(;;)
 			{
-				carry = recv(client_fd, buffer, BUFFER_SIZE, 0);
-				printPacket(realPackSz, buffer, hasColor);
-				buildPacket(packet, realPackSz, 0, SERVERDATA_EXECCOMMAND, "");
-				send(client_fd, packet, realPackSz, 0);
-				if(carry == 14) break;
+				carry = recv(client_fd, buffer, BUFFER_SIZE, 0); // Get Reponse From Server
+				printPacket(realPackSz, buffer, hasColor); // Print Packet On Terminal
+				buildPacket(packet, realPackSz, 0, SERVERDATA_EXECCOMMAND, ""); // Build Packet
+				send(client_fd, packet, realPackSz, 0); // Send Command To The Server
+				if(carry == 14) break; // If Packet Is Empty Break The Loop
 			}
 		}
 	}
-	close(client_fd); // Close connection
+	close(client_fd); // Close Connection With Server
 	printf(RED "Connection Closed.\n\n" RST);
-	return 0;
+	return 0; // Success Error Code
 }
