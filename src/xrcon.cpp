@@ -155,14 +155,14 @@ int main()
 
 	printf(GREEN "Authentication Successful!\n" RST);
 
-	if(isSource) printf(YELLOW "Sorce RCON Server Detected!\n" RST);
+	if(isSource) printf(YELLOW "Source RCON Server Detected!\n" RST);
 	else printf(YELLOW "Minecraft RCON Server Detected!\n" RST);
 
 	for(;;)
 	{
 		printf(">>> ");
 
-		std::string command; std::getline(std::cin, command); // Read Command
+		std::string command; std::getline(std::cin, command); // Read Command Even Empty String
 
 		if(command == "") continue; // If Command Is Empty Skip The Loop
 
